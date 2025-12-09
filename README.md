@@ -32,10 +32,10 @@ This project analyzes cyber crime patterns across 190+ Indian cities using R and
 
 ## 👥 Team Members
 
-- **AAQIB MOHAMMED** - Research Question 1 & Data Loading
-- **ARUN SUNDAR PAULRAJ** - Research Question 2 & Data Reshaping
-- **BHARATH BALUR UMASHANKAR** - Research Question 3 & Summary Statistics
-- **MELVIN JIJI THOMAS** - Research Question 4 & City Analysis
+- **AAQIB MOHAMMED** - Question 1 & Data Loading
+- **ARUN SUNDAR PAULRAJ** - Question 2 & Data Reshaping
+- **BHARATH BALUR UMASHANKAR** - Question 3 & Summary Statistics
+- **MELVIN JIJI THOMAS** - Question 4 & City Analysis
 
 ## 📋 How to Run
 
