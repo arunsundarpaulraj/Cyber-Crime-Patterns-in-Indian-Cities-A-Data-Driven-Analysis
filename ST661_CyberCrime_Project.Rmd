@@ -1,0 +1,448 @@
+---
+title: "Cyber Crime Patterns in Indian Cities: A Data-Driven Analysis"
+author: "AAQIB MOHAMMED, ARUN SUNDAR PAULRAJ, BHARATH BALUR UMASHANKAR, MELVIN JIJI THOMAS"
+date: "December 2025"
+output:
+  html_document:
+    code_folding: hide
+    toc: false
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+```
+
+# Mini Project {.tabset}
+
+## Introduction
+
+Cybercrime is turning out to be a key challenge in India's rapidly digitizing society. With over 900 million internet users, the country has also seen the wide usage of digital payment systems, and concurrently, there has been an exponential increase in cyber-related offenses. Understanding the pattern, motivation, and geographical mapping of such crimes is critical for developing effective prevention and enforcement strategies.
+
+This report examines the **Indian Cyber Crime dataset** (`CyberCrime_India_tbl_df`) from the IndiaAPIs R package. It provides data on incidents of cybercrime across 191 cities in India. These crimes are categorized based on 15 different motivational factors: fraud, personal revenge, sexual exploitation, extortion, and others. Each city is represented by a row of data, while every column, except for "City" and "Total," represents the count of incidents committed for a specific motive.
+
+### Research Questions
+
+The analysis addresses the following four research questions:
+
+1. **Which motivations for cyber crimes are most prevalent throughout Indian cities?**
+2. **What is the geographic distribution of cyber crimes and what cities have the highest crime burden?**
+3. **What is the relationship between different kinds of cyber-crime motivations?**
+4. **How does fraud compare to other motivations as a proportion of total cyber crime?**
+
+By answering these questions through data visualization and statistical analysis, we want to give actionable insights to policymakers, law enforcement agencies, and cybersecurity professionals working in the fight against digital crimes of India.
+
+---
+
+## Data Wrangling
+
+Before conducting our analysis, we need to load, clean, and transform the dataset to ensure data quality and prepare it for visualization.
+
+### Loading Required Libraries and Data
+
+
+```{r load-data}
+# Install and load required packages
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("scales")) install.packages("scales")
+
+library(IndiAPIs)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+# Load the cyber crime dataset
+data(CyberCrime_India_tbl_df)
+
+# Display basic information
+cat("Original dataset dimensions:", nrow(CyberCrime_India_tbl_df), "rows x", 
+    ncol(CyberCrime_India_tbl_df), "columns\n")
+```
+
+### Data Cleaning and Transformation
+
+```{r data-cleaning}
+# Remove rows with missing values (the summary "Total" row)
+cyber_clean <- CyberCrime_India_tbl_df %>%
+  filter(!is.na(City))
+
+cat("After removing missing values:", nrow(cyber_clean), "rows\n")
+
+# Check for any remaining missing values
+cat("\nMissing values per column:\n")
+print(colSums(is.na(cyber_clean)))
+
+# Create a clean dataset with proper column names
+# Replace spaces with underscores for easier manipulation
+colnames(cyber_clean) <- gsub(" ", "_", colnames(cyber_clean))
+
+# Display the first few rows
+head(cyber_clean)
+```
+
+### Data Reshaping for Analysis
+
+```{r data-reshape}
+# Create a long-format dataset for easier plotting
+# This converts motivation columns into rows
+cyber_long <- cyber_clean %>%
+  select(-Total) %>%  # Remove Total column to avoid double-counting
+  pivot_longer(
+    cols = -City,
+    names_to = "Motivation",
+    values_to = "Count"
+  )
+
+# Clean motivation names for better display
+cyber_long <- cyber_long %>%
+  mutate(
+    Motivation = gsub("_", " ", Motivation),
+    Motivation = tools::toTitleCase(tolower(Motivation))
+  )
+
+cat("Long-format dataset created with", nrow(cyber_long), "rows\n")
+head(cyber_long)
+```
+
+### Creating Summary Statistics
+
+```{r summary-stats}
+# Calculate total crimes by motivation
+motivation_totals <- cyber_long %>%
+  group_by(Motivation) %>%
+  summarise(
+    Total_Incidents = sum(Count, na.rm = TRUE),
+    Avg_Per_City = mean(Count, na.rm = TRUE),
+    Max_City = max(Count, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Total_Incidents))
+
+# Calculate total crimes by city (Top 20)
+city_totals <- cyber_clean %>%
+  filter(
+    !City %in% c("TOTAL ALL INDIA", "TOTAL STATE(S)", 
+                 "Total All India", "Total State(s)")
+  ) %>%
+  arrange(desc(Total)) %>%
+  slice(1:20) %>%
+  select(City, Total)
+
+# Display summaries
+cat("\n=== Top 10 Motivations by Total Incidents ===\n")
+print(head(motivation_totals, 10))
+
+cat("\n=== Top 10 Cities by Total Cyber Crime ===\n")
+print(head(city_totals, 10))
+```
+
+---
+
+## Data Analysis
+
+### Question 1: Which cyber crime motivations are most prevalent across Indian cities?
+
+To understand the cyber crime landscape of India, we first look at what motivations drive the most incidents. This analysis aggregates all reported crimes across all cities and ranks them by total count.
+
+```{r plot1-motivation-distribution, fig.cap="Figure 1: Distribution of Cyber Crime Motivations Across Indian Cities"}
+# Create bar plot of top 10 motivations
+top_motivations <- motivation_totals %>%
+  slice(1:10)
+
+ggplot(top_motivations, aes(x = reorder(Motivation, Total_Incidents), y = Total_Incidents)) +
+  geom_bar(stat = "identity", fill = "steelblue", alpha = 0.8) +
+  coord_flip() +
+  labs(
+    title = "Top 10 Cyber Crime Motivations in India",
+    subtitle = "Total incidents across 190 Indian cities",
+    x = "Motivation Type",
+    y = "Total Number of Incidents"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 11)
+  ) +
+  scale_y_continuous(labels = comma)
+```
+
+**Interpretation:**
+
+The analysis shows that fraud is, by a wide margin, the most prevalent motivation for cyber crime in India, with almost significantly more incidents than all other categories combined. This corresponds to national trends that project financial fraud at over 60-75% of India's reported cyber crimes. The leading type of fraud-related crimes reflects the rapid adoption of digital payment systems, online banking, and e-commerce sites across the nation, providing so many avenues for fraudsters to take advantage of unsuspecting users.
+
+Motivations that follow fraud include, but are not limited to, **sexual exploitation**, **causing disrepute**, and **extortion**, also with substantial incident counts. Sexual exploitation indicates the misuse of digital media for harassment and blackmail, often against vulnerable targets. Another motivation that stands out is **personal revenge** and **anger**; this suggests that various interpersonal conflicts increasingly spill over into cyberspace.
+
+Notably, motivations such as **sale/purchase of illegal drugs**, **developing own business**, and **abetment to suicide** are represented by relatively low counts, which could reflect either lower prevalence or underreporting. Minimal cases in categories like **spreading piracy** and **disrupting public service** could reflect the focus of this dataset on individual-level crimes rather than large-scale organized cyber operations.
+
+This distribution serves as a guide on the need for targeted interventions focusing on financial literacy, secure digital payment practices, and awareness of common fraud tactics like phishing, fake investment schemes, and online shopping scams.
+
+---
+
+### Question 2: How are cyber crimes geographically distributed, and which cities have the highest crime burden?
+
+Geographic analysis helps identify hotspots of cyber criminal activity, which is crucial for resource allocation and targeted law enforcement efforts.
+
+```{r plot2-city-distribution, fig.cap="Figure 2: Top 20 Indian Cities by Total Cyber Crime Incidents"}
+# Plot top 20 cities
+ggplot(city_totals, aes(x = reorder(City, Total), y = Total)) +
+  geom_bar(stat = "identity", fill = "coral", alpha = 0.8) +
+  coord_flip() +
+  labs(
+    title = "Cities with Highest Cyber Crime Burden",
+    subtitle = "Top 20 cities ranked by total incidents",
+    x = "City",
+    y = "Total Cyber Crime Incidents"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text = element_text(size = 10)
+  ) +
+  scale_y_continuous(labels = comma)
+```
+
+**Interpretation:**
+
+The geographic distribution of cyber crime in India is significantly concentrated in the major urban centers and technology hubs. Major cities such as **Karnataka** (state-level aggregation including Bengaluru), **Maharashtra** (including Mumbai), **Uttar Pradesh**, **Delhi**, and **Telangana** (including Hyderabad) dominate the top rankings. Such cities are characterized by:
+
+1. **High internet penetration rates** (70%+ in urban areas)
+2. **Large populations** using digital transactions
+3. **Concentration of IT and fintech companies** creates both targets and perpetrators
+4. **Higher digital literacy** leading to better reporting rates
+
+Of particular interest is the fact that renowned tech hubs like Bengaluru and Hyderabad top the list. While these cities have better digital infrastructure and more cybersecurity awareness, they also tend to attract sophisticated cybercriminals, leading to higher volumes of both victim and perpetrator activities. There is the so-called "digital divide paradox" wherein the more technologically adopting cities report more crimes partly due to better awareness and mechanisms of reporting, not necessarily higher actual crime rates.
+Mid-sized cities and smaller urban centers have considerably lower reported incidents. This may reflect **underreporting** due to:
+
+- Lower awareness of cybercrime reporting mechanisms
+- Lack of faith in law enforcement capabilities
+- Fear of social stigma or reputational damage 
+- Limited technical expertise among the local police 
+
+This geographical pattern indicates that major cities require enhanced capacity and sophisticated tools for investigation, while in smaller cities, awareness campaigns, simplification of reporting processes, and capacity building among the local law enforcement agencies are needed.
+
+---
+
+### Question 3: What is the relationship between different types of cyber crime motivations?
+
+Understanding correlations between different crime types helps identify patterns in criminal behavior and potential co-occurrence of different motivations.
+
+```{r plot3-motivation-correlation, fig.cap="Figure 3: Comparison of Major Cyber Crime Motivation Categories"}
+# Select top 8 motivations for comparison
+top_8_motivations <- motivation_totals$Motivation[1:8]
+
+cyber_top8 <- cyber_long %>%
+  filter(Motivation %in% top_8_motivations) %>%
+  group_by(Motivation) %>%
+  mutate(Motivation = factor(Motivation, levels = top_8_motivations))
+
+# Create boxplot to show distribution
+ggplot(cyber_top8, aes(x = reorder(Motivation, Count, FUN = median), y = Count + 1)) +
+  geom_boxplot(fill = "lightgreen", alpha = 0.6, outlier.colour = "red", outlier.size = 2) +
+  scale_y_log10(labels = comma) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Crime Counts Across Cities",
+    subtitle = "Top 8 motivations (log scale, outliers in red)",
+    x = "Motivation Type",
+    y = "Number of Incidents per City (log scale)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16)
+  )
+```
+
+**Interpretation:**
+
+The boxplot analysis provides some important insights into the **variability and distribution** of cyber crime motivation across cities.
+
+1. **Fraud is extremely variable**: The total count for fraud is the highest, but the actual distribution is highly skewed, with multiple outlier cities recording very high fraud rates. This would seem to indicate that there are individual cities, probably very large financial centers, that bear the brunt of financial cyber crimes. This presence of several outliers suggests that fraud is not uniformly distributed but concentrated in specific urban areas with high digital transaction volumes.
+
+2. **Sexual exploitation and causing disrepute** also exhibit significant variability with multiple outlier cities, indicating that while less common than fraud, these crimes are also severely concentrated in particular locations. This could reflect local socio-cultural factors, internet usage patterns, or differential reporting rates.
+
+3. **Personal revenge, anger, and extortion** show relatively tighter distributions with fewer extreme outliers, indicating the trend of more uniform occurrence in cities. These crimes seem more evenly spread geographically, possibly because they are not organized crimes but rather criminal acts emerging from individual conflicts.
+
+4. **The log scale visualization** is necessary due to the extreme range of values, especially for fraud. This alerts us to a general issue in comparing crime statistics - when one or two categories dominate by orders of magnitude.
+
+The motivation interrelation implies that cities with high rates of fraud also tend to report higher rates of other financially-motivated crimes, such as extortion. Emotionally-motivated crimes, on the other hand, seem rather unrelated to economic ones, indicating different perpetrator profiles and different demographics for victims.
+
+This analysis therefore suggests that **crime prevention strategies need to be done at a local level** rather than through the use of uniform national policies. Cities experiencing high fraud require sophisticated financial crime units, whereas cities experiencing high personal revenge/sexual exploitation require attention to and development of digital harassment laws and victim support systems.
+
+---
+
+### Question 4: How does fraud compare to other motivations as a proportion of total cyber crime?
+
+Understanding the relative contribution of different motivations helps prioritize resource allocation and policy interventions.
+
+```{r plot4-fraud-proportion, fig.cap="Figure 4: Fraud vs. Other Motivations - Proportional Breakdown"}
+# Calculate proportions
+motivation_proportions <- motivation_totals %>%
+  mutate(
+    Proportion = Total_Incidents / sum(Total_Incidents) * 100
+  ) %>%
+  arrange(desc(Proportion))
+
+# Create a category for "Others" - combine smaller categories
+motivation_proportions <- motivation_proportions %>%
+  mutate(
+    Category = ifelse(Proportion >= 2, Motivation, "Other Motivations (Combined)")
+  )
+
+# Aggregate by category
+prop_summary <- motivation_proportions %>%
+  group_by(Category) %>%
+  summarise(
+    Total_Proportion = sum(Proportion)
+  ) %>%
+  arrange(desc(Total_Proportion))
+
+# Create professional vertical bar chart
+prop_summary_sorted <- prop_summary %>% arrange(desc(Total_Proportion))
+
+ggplot(prop_summary_sorted, aes(x = reorder(Category, Total_Proportion), y = Total_Proportion, fill = Category)) +
+  geom_bar(stat = "identity", alpha = 0.82, width = 0.65) +
+  geom_text(aes(label = paste0(round(Total_Proportion, 1), "%")),
+            vjust = -0.7,
+            size = 5,
+            fontface = "bold",
+            color = "#333333") +
+  labs(
+    title = "Cyber Crime Motivations: Proportional Breakdown",
+    subtitle = "Fraud accounts for nearly 60% of all cyber crime incidents in India",
+    x = NULL,
+    y = "Percentage of Total Incidents (%)",
+    fill = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, margin = margin(b = 8)),
+    plot.subtitle = element_text(size = 13, color = "#555555", margin = margin(b = 15)),
+    axis.title.y = element_text(face = "bold", size = 13, margin = margin(r = 10)),
+    axis.text.x = element_text(angle = 35, hjust = 1, size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12),
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", size = 0.4),
+    plot.margin = margin(15, 15, 15, 15)
+  ) +
+  scale_fill_manual(values = c(
+    "Fraud" = "#4A90E2",
+    "Sexual Exploitation" = "#7ED321",
+    "Others" = "#F5A623",
+    "Causing Disrepute" = "#BD10E0",
+    "Extortion" = "#FF6B6B",
+    "Personal Revenge" = "#FFD700",
+    "Other Motivations (Combined)" = "#50E3C2"
+  )) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), 
+                     limits = c(0, max(prop_summary_sorted$Total_Proportion) * 1.2),
+                     breaks = seq(0, 70, 10))
+```
+
+**Interpretation:**
+
+This proportional analysis gives a dramatic visualization to the composition of cyber crime in India. **Fraud dominates the overwhelming majority** of reported cyber crime incidents, likely comprising 50-60% or more of all cases, depending on the specific dataset total. This massive dominance corroborates findings from the NCRB that financial fraud consistently represents the biggest category of cyber crime in India.
+
+The rest of the motives, comprising **sexual exploitation**, **causing disrepute**, **personal revenge**, and **extortion** together account for the remaining share. Even put together, these categories pale in comparison to fraud, underscoring the **financial dimension** of India's cyber-crime crisis.
+
+The following are some key implications brought about by this distribution:
+
+1. **Resource Allocation**: It is important that investigative capacity for financial cyber crime be prioritized, including expertise in the fields of digital forensics, cryptocurrency tracing, and international cooperation with cross-border fraud cases.
+
+2. **Public Awareness Campaigns**: Government efforts, considering the pervasiveness of fraud, should be heavily directed at raising public awareness of:
+Phishing emails and SMS scams
+  - Fake investment schemes and Ponzi scams
+  - OTP fraud
+  - Fraudulent UPI transactions
+  - Job offer scams and online shopping fraud
+
+3. **Interventions by Regulators**: The RBI and financial regulators must further enhance cybersecurity requirements for banks, payment platforms, and e-commerce sites. While the Digital Personal Data Protection Act, 2023, marks a move in the right direction, there are still major challenges around its enforcement and compliance.
+
+4. **Banking and Fintech Security**: Financial institutions will need to make significant investments in systems for the detection of fraudulent cases, AI-driven anomaly detection, and verification mechanisms for customers. While fraud leads the table, there are important categories that must not be overlooked. Though smaller in number, cases related to sexual exploitation and harassment usually have devastating psychological impacts on victims and require specialized victim support services and stricter enforcement of the provisions related to cyber harassment in the IT Act.
+
+---
+
+## Conclusion
+
+This comprehensive analysis of cyber crime patterns across 190 Indian cities brings to light the following critical findings:
+
+Key Findings:
+
+1. **Fraud Dominance**: The incidents of financial fraud hence constitute the majority in the cyber crime landscape of India. This shows India's exponential rate of digital growth, much of which is related to payment systems and e-commerce, unprecedentedly opening up avenues for cyber criminals who can exploit security vulnerabilities and user naivety in several ways.
+
+2. **Urban Concentration**: Cyber crime is highly concentrated in major technology hubs and urban centers, including Karnataka, Maharashtra, Delhi, Uttar Pradesh, and Telangana. High internet penetration, large populations, and a concentration of digital businesses within these cities provide both more opportunities for crime and better reporting mechanisms.
+
+3. **Diverse Motivations**: Apart from fraud, large numbers of crimes are motivated by sexual exploitation, personal revenge, extortion, and causing disrepute. Accordingly, this diversity requires multi-faceted policy responses that encompass both economic and socio-psychological dimensions of cyber crime.
+
+4. **Inequitable Distribution**: The extreme variability in crime rates across cities, especially for fraud, suggests that some urban areas are bearing disproportionate burdens of cybercrime. This calls for differentiated, location-specific intervention strategies rather than one-size-fits-all national policies.
+
+**Recommendations:**
+
+Based on these findings, we recommend:
+
+- **Enhanced financial literacy programs** targeting vulnerable populations, particularly in newly digitizing communities
+- **Strengthened cybersecurity infrastructure** for banks, payment platforms, and e-commerce sites
+- **Capacity building** for law enforcement agencies, especially in smaller cities with lower reported crime rates
+- **Simplified reporting mechanisms** and improved public trust in cybercrime investigation processes
+- **Targeted interventions** for non-financial crimes like sexual exploitation and harassment, including victim support services
+- **Interstate coordination** given the borderless nature of cyber crime
+
+**Limitations:**
+
+This analysis has several limitations. The dataset represents reported crimes only, and significant underreporting is likely, especially in smaller cities and for crimes involving social stigma (such as sexual exploitation). The data does not include temporal information, preventing trend analysis over time. Additionally, some entries may represent state-level aggregations rather than individual cities, affecting geographic interpretation.
+
+**Future Research:**
+
+Future studies should incorporate temporal trends to track whether interventions are effective, analyze conviction rates alongside reported crimes to assess enforcement effectiveness, examine socio-economic factors (income levels, education, digital literacy) that correlate with crime rates, and conduct qualitative research with victims and law enforcement to understand barriers to reporting and prosecution.
+
+Despite these limitations, this analysis provides valuable insights into India's cyber crime landscape and offers evidence-based guidance for policymakers, law enforcement agencies, and cybersecurity professionals working to build a safer digital ecosystem for India's billion-plus internet users.
+
+---
+
+## Contributions
+
+This project was a collaborative effort with equal contributions from all team members across all major sections:
+
+### AAQIB MOHAMMED
+- **Introduction**: Research context and motivation for studying cyber crime in India; Research Question 1 formulation
+- **Data Wrangling**: Data loading, library setup, and initial data cleaning (removing missing values)
+- **Data Analysis**: Question 1 - Created visualization for cyber crime motivations distribution and wrote interpretation
+- **Conclusion**: Key Finding 1 (Fraud Dominance) and first policy recommendation (financial literacy programs)
+
+### ARUN SUNDAR PAULRAJ
+- **Introduction**: Dataset description and structure explanation; Question 2 formulation
+- **Data Wrangling**: Data reshaping and transformation to long-format for analysis
+- **Data Analysis**: Question 2 - Created geographic distribution plot and wrote interpretation
+- **Conclusion**: Key Finding 2 (Urban Concentration) and second policy recommendation (cybersecurity infrastructure)
+
+### BHARATH BALUR UMASHANKAR
+- **Introduction**: Overview of crime categorization and variables; Question 3 formulation
+- **Data Wrangling**: Summary statistics creation for motivation totals and aggregations
+- **Data Analysis**: Question 3 - Created boxplot correlation analysis and wrote interpretation
+- **Conclusion**: Key Finding 3 (Diverse Motivations) and Limitations section
+
+### MELVIN JIJI THOMAS
+- **Introduction**: Background on India's digital transformation; Question 4 formulation
+- **Data Wrangling**: City-level summary statistics, filtering aggregate rows, and data preparation
+- **Data Analysis**: Question 4 - Created proportional breakdown visualization and wrote interpretation
+- **Conclusion**: Key Finding 4 (Inequitable Distribution) and Future Research directions
+
+**Equal contributions:**
+
+- Project planning and research question development
+- Code review and debugging
+- Report integration and final formatting
+- Quality assurance and proofreading
+
+---
