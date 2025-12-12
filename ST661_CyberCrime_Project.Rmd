@@ -1,7 +1,7 @@
 ---
 title: "Cyber Crime Patterns in Indian Cities: A Data-Driven Analysis"
-author: "AAQIB MOHAMMED, ARUN SUNDAR PAULRAJ, BHARATH BALUR UMASHANKAR, MELVIN JIJI THOMAS"
-date: "December 2025"
+author: "BHARATH BALUR UMASHANKAR (25251229)	, MELVIN JIJI THOMAS (25252892), AAQIB MOHAMMED (25255317), ARUN SUNDAR PAULRAJ (25250740)"
+date: "`r format(Sys.Date())`"
 output:
   html_document:
     code_folding: hide
@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Mini Project {.tabset}
+# Group G : Crime {.tabset}
 
 ## Introduction
 
@@ -94,7 +94,7 @@ head(cyber_clean)
 ### Data Reshaping for Analysis
 
 ```{r data-reshape}
-# Create a long-format dataset for easier plotting
+# long-format dataset for easier plotting
 # This converts motivation columns into rows
 cyber_long <- cyber_clean %>%
   select(-Total) %>%  # Remove Total column to avoid double-counting
@@ -104,7 +104,7 @@ cyber_long <- cyber_clean %>%
     values_to = "Count"
   )
 
-# Clean motivation names for better display
+# Clean motivation names
 cyber_long <- cyber_long %>%
   mutate(
     Motivation = gsub("_", " ", Motivation),
@@ -134,9 +134,14 @@ city_totals <- cyber_clean %>%
     !City %in% c("TOTAL ALL INDIA", "TOTAL STATE(S)", 
                  "Total All India", "Total State(s)")
   ) %>%
+  group_by(City) %>%                 # collapse any duplicates
+  summarise(Total = sum(Total), .groups = "drop") %>%
   arrange(desc(Total)) %>%
-  slice(1:20) %>%
-  select(City, Total)
+  slice(1:20)
+
+city_totals <- city_totals %>%
+  mutate(City = factor(City, levels = unique(City)))
+
 
 # Display summaries
 cat("\n=== Top 10 Motivations by Total Incidents ===\n")
@@ -194,7 +199,7 @@ Geographic analysis helps identify hotspots of cyber criminal activity, which is
 
 ```{r plot2-city-distribution, fig.cap="Figure 2: Top 20 Indian Cities by Total Cyber Crime Incidents"}
 # Plot top 20 cities
-ggplot(city_totals, aes(x = reorder(City, Total), y = Total)) +
+ggplot(city_totals, aes(x = City, y = Total)) +
   geom_bar(stat = "identity", fill = "coral", alpha = 0.8) +
   coord_flip() +
   labs(
@@ -209,11 +214,12 @@ ggplot(city_totals, aes(x = reorder(City, Total), y = Total)) +
     axis.text = element_text(size = 10)
   ) +
   scale_y_continuous(labels = comma)
+
 ```
 
 **Interpretation:**
 
-The geographic distribution of cyber crime in India is significantly concentrated in the major urban centers and technology hubs. Major cities such as **Karnataka** (state-level aggregation including Bengaluru), **Maharashtra** (including Mumbai), **Uttar Pradesh**, **Delhi**, and **Telangana** (including Hyderabad) dominate the top rankings. Such cities are characterized by:
+The geographic distribution of cyber crime in India is significantly concentrated in the major urban centers and technology hubs. Major cities such as **Karnataka** (state-level aggregation including Bengaluru), **Maharashtra** (including Mumbai), **Uttar Pradesh**, and **Telangana** (including Hyderabad) dominate the top rankings. Such cities are characterized by:
 
 1. **High internet penetration rates** (70%+ in urban areas)
 2. **Large populations** using digital transactions
@@ -237,7 +243,7 @@ This geographical pattern indicates that major cities require enhanced capacity 
 Understanding correlations between different crime types helps identify patterns in criminal behavior and potential co-occurrence of different motivations.
 
 ```{r plot3-motivation-correlation, fig.cap="Figure 3: Comparison of Major Cyber Crime Motivation Categories"}
-# Select top 8 motivations for comparison
+# top 8 motivations for comparison
 top_8_motivations <- motivation_totals$Motivation[1:8]
 
 cyber_top8 <- cyber_long %>%
@@ -245,7 +251,7 @@ cyber_top8 <- cyber_long %>%
   group_by(Motivation) %>%
   mutate(Motivation = factor(Motivation, levels = top_8_motivations))
 
-# Create boxplot to show distribution
+# boxplot to show distribution
 ggplot(cyber_top8, aes(x = reorder(Motivation, Count, FUN = median), y = Count + 1)) +
   geom_boxplot(fill = "lightgreen", alpha = 0.6, outlier.colour = "red", outlier.size = 2) +
   scale_y_log10(labels = comma) +
@@ -292,7 +298,7 @@ motivation_proportions <- motivation_totals %>%
   ) %>%
   arrange(desc(Proportion))
 
-# Create a category for "Others" - combine smaller categories
+# Created a category for "Others" - combine smaller categories
 motivation_proportions <- motivation_proportions %>%
   mutate(
     Category = ifelse(Proportion >= 2, Motivation, "Other Motivations (Combined)")
@@ -306,7 +312,7 @@ prop_summary <- motivation_proportions %>%
   ) %>%
   arrange(desc(Total_Proportion))
 
-# Create professional vertical bar chart
+# vertical bar chart
 prop_summary_sorted <- prop_summary %>% arrange(desc(Total_Proportion))
 
 ggplot(prop_summary_sorted, aes(x = reorder(Category, Total_Proportion), y = Total_Proportion, fill = Category)) +
@@ -408,41 +414,15 @@ Future studies should incorporate temporal trends to track whether interventions
 
 Despite these limitations, this analysis provides valuable insights into India's cyber crime landscape and offers evidence-based guidance for policymakers, law enforcement agencies, and cybersecurity professionals working to build a safer digital ecosystem for India's billion-plus internet users.
 
----
+**Team Contributions:**
 
-## Contributions
+I, **AAQIB MOHAMMED**, contributed to the project by leading the data preparation and transformation workflow. I handled the initial cleaning of the cyber-crime dataset, checked for inconsistencies, and ensured the data was structured correctly for analysis. I created multiple derived variables and reorganized the dataset into long and wide formats where required. Additionally, I supported the team in the **technical coding of several visualisations, verified the accuracy of plotted outputs, and helped interpret patterns to ensure our findings were analytically sound and aligned with the project objectives.
 
-This project was a collaborative effort with equal contributions from all team members across all major sections:
+I, **ARUN SUNDAR PAULRAJ**, contributed by designing the analytical framework for the project and shaping how each research question was approached. I assisted in crafting the narrative and flow of the report, ensuring clarity and coherence between sections. I worked on developing visualisation strategies, supported R code development for the graphs, and contributed to identifying and explaining key trends across cyber-crime motivations and city-level distributions. My work helped connect statistical findings with meaningful interpretations, strengthening the overall narrative of the analysis.
 
-### AAQIB MOHAMMED
-- **Introduction**: Research context and motivation for studying cyber crime in India; Research Question 1 formulation
-- **Data Wrangling**: Data loading, library setup, and initial data cleaning (removing missing values)
-- **Data Analysis**: Question 1 - Created visualization for cyber crime motivations distribution and wrote interpretation
-- **Conclusion**: Key Finding 1 (Fraud Dominance) and first policy recommendation (financial literacy programs)
+I, **BHARATH BALUR UMASHANKAR**, contributed by conducting the core exploratory data analysis for all three research questions. I analysed motivation trends, geographic patterns, and distributional differences across cities, supporting these insights with relevant visualisation outputs. I also led the interpretation writing, explaining results in context and ensuring the narrative highlighted major patterns such as the dominance of fraud and the concentration of incidents in major urban centres. My contribution ensured that the analytical insights were presented comprehensively and supported by clear statistical reasoning.
 
-### ARUN SUNDAR PAULRAJ
-- **Introduction**: Dataset description and structure explanation; Question 2 formulation
-- **Data Wrangling**: Data reshaping and transformation to long-format for analysis
-- **Data Analysis**: Question 2 - Created geographic distribution plot and wrote interpretation
-- **Conclusion**: Key Finding 2 (Urban Concentration) and second policy recommendation (cybersecurity infrastructure)
-
-### BHARATH BALUR UMASHANKAR
-- **Introduction**: Overview of crime categorization and variables; Question 3 formulation
-- **Data Wrangling**: Summary statistics creation for motivation totals and aggregations
-- **Data Analysis**: Question 3 - Created boxplot correlation analysis and wrote interpretation
-- **Conclusion**: Key Finding 3 (Diverse Motivations) and Limitations section
-
-### MELVIN JIJI THOMAS
-- **Introduction**: Background on India's digital transformation; Question 4 formulation
-- **Data Wrangling**: City-level summary statistics, filtering aggregate rows, and data preparation
-- **Data Analysis**: Question 4 - Created proportional breakdown visualization and wrote interpretation
-- **Conclusion**: Key Finding 4 (Inequitable Distribution) and Future Research directions
-
-**Equal contributions:**
-
-- Project planning and research question development
-- Code review and debugging
-- Report integration and final formatting
-- Quality assurance and proofreading
+I, **MELVIN JIJI THOMAS**, contributed by assisting with technical implementation and visual development throughout the project. I collaborated on writing R code for plots, fine-tuning graph aesthetics, and ensuring all visualisations aligned with the research questions. I also supported the interpretation of results particularly in identifying geographic trends and discussing reporting variations across city types. Additionally, I helped refine the structure of the report by reviewing transitions and ensuring the analysis remained cohesive and effectively communicated.
 
 ---
+

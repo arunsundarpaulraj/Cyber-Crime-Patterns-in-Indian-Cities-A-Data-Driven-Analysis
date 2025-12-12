@@ -4,6 +4,10 @@
 
 This project analyzes cyber crime patterns across 190+ Indian cities using R and ggplot2. We investigate which crimes are most prevalent, where they occur, how motivations relate, and how fraud dominates India's cyber crime landscape.
 
+## 🌐 Site
+
+[Cyber Crime Patterns in Indian Cities: A Data-Driven Analysis - Github Page](https://arunsundarpaulraj.github.io/Cyber-Crime-Patterns-in-Indian-Cities-A-Data-Driven-Analysis/ST661_CyberCrime_Project.html)
+
 ## 📊 Dataset
 
 - **Source**: IndiaAPIs R package (`CyberCrime_India_tbl_df`)
@@ -36,7 +40,3 @@ This project analyzes cyber crime patterns across 190+ Indian cities using R and
 - **ARUN SUNDAR PAULRAJ** - Question 2 & Data Reshaping
 - **BHARATH BALUR UMASHANKAR** - Question 3 & Summary Statistics
 - **MELVIN JIJI THOMAS** - Question 4 & City Analysis
-
-## 📋 How to Run
-
-1. Install packages:
